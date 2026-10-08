@@ -2,6 +2,8 @@
 
 > **"We convert fragmented disaster reports into prioritized, actionable rescue assignments in real time."**
 
+> 👨‍💻 **Developed by:** **Mohd Adil** · **Aamir Hamza** · **Priyanshu**
+
 RakshaSetu is a district-level **decision-support system** for disaster response. It fuses citizen reports, official weather warnings, and live resource inventory into a single geospatial situation picture — then uses a transparent multi-factor **allocation engine** to recommend *which* rescue team should respond to *which* incident first.
 
 **SIH Problem Statement:** PS-05 — Real-Time Disaster Early-Warning & Resource Coordination Platform
@@ -117,3 +119,45 @@ src/
 │   └── shelter-manage/      # shelter occupancy view
 supabase/migrations/         # 0001 schema … 0008 policies (full list in setup)
 supabase/seed.sql            # Rourkela flood demo dataset (idempotent)
+```
+
+---
+
+## 🚀 Quick Start & Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone git@github.com:adeilm180-maker/Raksha_setu_.git
+   cd Raksha_setu_
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Add your Supabase project credentials in `.env.local`:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   ```
+
+4. **Run the Development Server:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 👥 Authors & Team
+
+Developed with ❤️ by:
+- **Mohd Adil** ([@adeilm180-maker](https://github.com/adeilm180-maker))
+- **Aamir Hamza**
+- **Priyanshu**
