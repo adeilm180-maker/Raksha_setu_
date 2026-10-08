@@ -174,10 +174,10 @@ export function IncidentDetailPanel({
       <p className="mb-2 text-sm">{incident.description}</p>
 
       <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-muted">
-        <div> {incident.location_text ?? `${incident.latitude.toFixed(4)}, ${incident.longitude.toFixed(4)}`}</div>
-        <div> {incident.people_affected} people affected</div>
-        <div> Needs: {incident.required_capabilities.join(", ") || "general"}</div>
-        <div> Confidence: {Math.round(incident.confidence_score * 100)}%</div>
+        <div>📍 {incident.location_text ?? `${incident.latitude.toFixed(4)}, ${incident.longitude.toFixed(4)}`}</div>
+        <div>👥 {incident.people_affected} people affected</div>
+        <div>🛠️ Needs: {incident.required_capabilities.join(", ") || "general"}</div>
+        <div>🎯 Confidence: {Math.round(incident.confidence_score * 100)}%</div>
       </div>
 
       {isClosed && (

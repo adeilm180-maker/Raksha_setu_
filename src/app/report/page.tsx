@@ -3,17 +3,27 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_REPORT_LOCATION, CITY } from "@/config/city";
 
 const CATEGORIES = [
-  { value: "FLOOD", label: "Flood", icon: "" },
-  { value: "FIRE", label: "Fire", icon: "" },
-  { value: "LANDSLIDE", label: "Landslide", icon: "" },
-  { value: "STRUCTURAL_COLLAPSE", label: "Collapse", icon: "" },
-  { value: "MEDICAL_EMERGENCY", label: "Medical", icon: "" },
-  { value: "EARTHQUAKE", label: "Earthquake", icon: "" },
-  { value: "CYCLONE", label: "Cyclone", icon: "" },
-  { value: "OTHER", label: "Other", icon: "" },
+  { value: "FLOOD", label: "Flood", icon: "🌊" },
+  { value: "FIRE", label: "Fire", icon: "🔥" },
+  { value: "LANDSLIDE", label: "Landslide", icon: "⛰️" },
+  { value: "STRUCTURAL_COLLAPSE", label: "Collapse", icon: "🏚️" },
+  { value: "MEDICAL_EMERGENCY", label: "Medical", icon: "🚑" },
+  { value: "EARTHQUAKE", label: "Earthquake", icon: "🌋" },
+  { value: "CYCLONE", label: "Cyclone", icon: "🌀" },
+  { value: "OTHER", label: "Other", icon: "⚠️" },
 ] as const;
+
+const LOCATION_PRESETS = [
+  { label: "Vedvyas Ghat", lat: 22.2830, lng: 84.8290 },
+  { label: "Panposh Riverside", lat: 22.2350, lng: 84.8540 },
+  { label: "Chhend Colony", lat: 22.2790, lng: 84.8460 },
+  { label: "Koel Nagar", lat: 22.2400, lng: 84.8410 },
+  { label: "Sector 2 (Central)", lat: 22.2560, lng: 84.8470 },
+  { label: "Jalda Underpass", lat: 22.2160, lng: 84.8310 },
+];
 
 type Step = 1 | 2 | 3;
 
@@ -245,7 +255,7 @@ export default function ReportPage() {
             </div>
           </div>
 
-          <label className="mt-4 block cursor-pointer rounded-xl border-2 border-dashed border-[var(--color-border)] bg-white p-6 text-center shadow-sm">
+          <label className="mt-4 block cursor-pointer rounded-xl border-2 border-dashed border-[var(--color-border)] bg-white p-6 text-center shadow-sm hover:border-[var(--color-accent)] transition-colors">
             <input
               type="file"
               accept="image/*"
@@ -254,12 +264,12 @@ export default function ReportPage() {
               onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
             />
             {photo ? (
-              <span className="text-sm font-medium text-green-600">
-                 Photo attached ({photo.name.slice(0, 24)})
+              <span className="flex items-center justify-center gap-2 text-sm font-medium text-green-600">
+                <span>📷</span> Photo attached ({photo.name.slice(0, 24)})
               </span>
-            ): (
-              <span className="text-sm text-muted">
-                 Add a photo <span className="text-xs">(optional)</span>
+            ) : (
+              <span className="flex items-center justify-center gap-2 text-sm text-muted">
+                <span>📷</span> Add a photo <span className="text-xs">(optional)</span>
               </span>
             )}
           </label>
@@ -276,7 +286,7 @@ export default function ReportPage() {
               disabled={description.trim().length < 5}
               className="inline-flex h-12 flex-[2] items-center justify-center rounded-xl bg-[var(--color-accent)] text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-40"
             >
-              Next
+              Next →
             </button>
           </div>
         </section>
@@ -290,34 +300,81 @@ export default function ReportPage() {
             We use GPS only while you report
           </p>
 
-          <button
-            onClick={detectLocation}
-            className={`w-full rounded-xl border-2 p-5 text-left transition-colors ${
-              coords
-                ? "border-green-400 bg-green-50"
-: "border-dashed border-[var(--color-accent)] bg-blue-50/50"
-            }`}
-          >
-            {locating ? (
-              <span className="text-sm font-medium"> Detecting location...</span>
-            ): coords ? (
-              <>
-                <span className="block text-sm font-semibold text-green-700">
-                   Location detected
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={detectLocation}
+              className={`w-full rounded-xl border-2 p-5 text-left transition-colors ${
+                coords
+                  ? "border-green-400 bg-green-50"
+                  : "border-dashed border-[var(--color-accent)] bg-blue-50/50 hover:bg-blue-50"
+              }`}
+            >
+              {locating ? (
+                <span className="flex items-center gap-2 text-sm font-medium text-blue-700">
+                  <span className="animate-spin">📡</span> Detecting GPS coordinates...
                 </span>
-                <span className="text-xs text-muted">
-                  {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-                </span>
-              </>
-            ): (
-              <>
-                <span className="block text-sm font-semibold text-[var(--color-accent)]">
-                   Detect my location
-                </span>
-                <span className="text-xs text-muted">Tap to allow GPS access</span>
-              </>
-            )}
-          </button>
+              ) : coords ? (
+                <>
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-green-700">
+                    <span>✓</span> Location confirmed
+                  </span>
+                  <span className="mt-0.5 block font-mono text-xs text-muted">
+                    {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent)]">
+                    <span>📍</span> Detect my device location
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    Tap to use browser GPS
+                  </span>
+                </>
+              )}
+            </button>
+
+            {/* Quick preset chips or city default */}
+            <div>
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-muted">
+                <span>Or select landmark / area</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoords({
+                      lat: DEFAULT_REPORT_LOCATION.latitude,
+                      lng: DEFAULT_REPORT_LOCATION.longitude,
+                    });
+                    setError(null);
+                  }}
+                  className="text-[var(--color-accent)] hover:underline normal-case font-medium"
+                >
+                  Use {CITY.name} Center
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {LOCATION_PRESETS.map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => {
+                      setCoords({ lat: p.lat, lng: p.lng });
+                      setLandmark(p.label);
+                      setError(null);
+                    }}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                      coords?.lat === p.lat && coords?.lng === p.lng
+                        ? "border-green-500 bg-green-50 font-semibold text-green-800"
+                        : "border-[var(--color-border)] bg-white text-muted hover:bg-gray-50 hover:text-foreground"
+                    }`}
+                  >
+                    📍 {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
           <input
             value={landmark}
@@ -342,9 +399,9 @@ export default function ReportPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting || !coords}
-              className="inline-flex h-12 flex-[2] items-center justify-center rounded-xl bg-[var(--color-primary)] text-base font-bold text-white transition-all hover:bg-[var(--color-primary-dark)] active:scale-[0.99] disabled:opacity-40"
+              className="inline-flex h-12 flex-[2] items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] text-base font-bold text-white transition-all hover:bg-[var(--color-primary-dark)] active:scale-[0.99] disabled:opacity-40"
             >
-              {submitting ? "Sending...": " SEND REPORT"}
+              {submitting ? "Sending Report..." : "🚨 SEND EMERGENCY REPORT"}
             </button>
           </div>
         </section>

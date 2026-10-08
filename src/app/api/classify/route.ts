@@ -1,13 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { jsonError, requireAuth } from "@/lib/auth";
+import { jsonError, optionalAuth } from "@/lib/auth";
 import { classifyReport } from "@/lib/classifier";
 
 // POST /api/classify { text }
 // Preview endpoint - shows what the AI pipeline extracts from a report
 // without creating an incident. Useful for demos and testing.
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
-  if (auth instanceof NextResponse) return auth;
+  await optionalAuth();
 
   let body: { text?: string };
   try {

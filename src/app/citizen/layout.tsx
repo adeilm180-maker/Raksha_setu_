@@ -14,14 +14,15 @@ export default async function CitizenLayout({
 
   const role = await getUserRole();
 
+  // Operators and Admins can view any console (including Citizen Portal) for testing and supervision
   switch (role) {
-    case "OPERATOR":
-    case "ADMIN":
-      redirect("/dashboard");
     case "FIELD_TEAM":
       redirect("/team");
     case "SHELTER_MANAGER":
       redirect("/shelter-manage");
+    case "OPERATOR":
+    case "ADMIN":
+    case "CITIZEN":
     default:
       break;
   }

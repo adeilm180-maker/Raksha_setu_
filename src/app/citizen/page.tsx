@@ -28,6 +28,17 @@ const STATUS_CHIPS: Record<string, { label: string; cls: string }> = {
   CANCELLED: { label: "Closed", cls: "bg-gray-100 text-gray-500" },
 };
 
+const INCIDENT_ICONS: Record<string, string> = {
+  FLOOD: "🌊",
+  FIRE: "🔥",
+  LANDSLIDE: "⛰️",
+  STRUCTURAL_COLLAPSE: "🏚️",
+  MEDICAL_EMERGENCY: "🚑",
+  EARTHQUAKE: "🌋",
+  CYCLONE: "🌀",
+  OTHER: "⚠️",
+};
+
 function timeAgo(iso: string) {
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return "just now";
@@ -45,6 +56,7 @@ export default function CitizenDashboard() {
     useLiveData();
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -55,6 +67,12 @@ export default function CitizenDashboard() {
       if (!user) return;
       setUserId(user.id);
       setUserName(user.user_metadata?.name ?? user.email?.split("@")[0] ?? "");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      setUserRole(profile?.role ?? null);
     })();
   }, []);
 
@@ -93,10 +111,20 @@ export default function CitizenDashboard() {
               </div>
             </div>
           </div>
-          <SignOutButton
-            label="Sign out"
-            className="shrink-0 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-gray-50 hover:text-foreground disabled:opacity-60 sm:text-sm"
-          />
+          <div className="flex items-center gap-2">
+            {userRole && ["OPERATOR", "ADMIN"].includes(userRole) && (
+              <Link
+                href="/dashboard"
+                className="shrink-0 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+              >
+                ← Control Room
+              </Link>
+            )}
+            <SignOutButton
+              label="Sign out"
+              className="shrink-0 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-gray-50 hover:text-foreground disabled:opacity-60 sm:text-sm"
+            />
+          </div>
         </div>
       </header>
 
@@ -109,7 +137,7 @@ export default function CitizenDashboard() {
         {/* Alerts */}
         {initialLoading ? (
           <Skeleton className="mb-5 h-[72px] rounded-xl" />
-        ): topAlerts.length > 0 ? (
+        ) : topAlerts.length > 0 ? (
           <section
             className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
             aria-label="Active warnings"
@@ -122,7 +150,8 @@ export default function CitizenDashboard() {
                   className={`flex gap-3 rounded-xl p-3.5 ${c.bg} transition-transform hover:-translate-y-px`}
                   style={{ borderLeft: `4px solid ${c.bar}` }}
                 >
-                    <div className="min-w-0">
+                  <span className="text-xl">⚠️</span>
+                  <div className="min-w-0">
                     <div className={`text-sm font-semibold leading-snug ${c.text}`}>
                       {a.title}
                     </div>
@@ -136,7 +165,7 @@ export default function CitizenDashboard() {
               );
             })}
           </section>
-        ): null}
+        ) : null}
 
         {/* Primary actions */}
         <section className="mb-8 grid gap-3 sm:grid-cols-[2fr_1fr]">
@@ -145,20 +174,22 @@ export default function CitizenDashboard() {
             className="group flex items-center justify-between gap-4 rounded-2xl bg-[var(--color-primary)] px-5 py-5 text-white shadow-md transition-all hover:bg-[var(--color-primary-dark)] hover:shadow-lg active:scale-[0.99] sm:px-7"
           >
             <div>
-              <div className="text-lg font-bold sm:text-xl">
-                Report an Emergency
+              <div className="flex items-center gap-2 text-lg font-bold sm:text-xl">
+                <span>🚨</span> Report an Emergency
               </div>
               <div className="mt-0.5 text-xs opacity-80 sm:text-sm">
                 Flood · Fire · Medical — takes under a minute
               </div>
             </div>
-            
+            <span className="rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold text-white transition-transform group-hover:translate-x-1">
+              Start →
+            </span>
           </Link>
           <a
             href="tel:112"
             className="flex items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-white px-5 py-4 text-sm font-semibold text-[var(--color-primary)] shadow-sm transition-colors hover:bg-red-50 active:scale-[0.99]"
           >
-            Call helpline 112
+            <span>📞</span> Call helpline 112
           </a>
         </section>
 
@@ -195,9 +226,9 @@ export default function CitizenDashboard() {
                   </li>
                 ))}
               </ul>
-            ): myReports.length === 0 ? (
+            ) : myReports.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-white p-8 text-center">
-                
+                <div className="text-3xl">📋</div>
                 <p className="mt-2 text-sm font-medium">No reports yet</p>
                 <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted">
                   When you report an emergency it appears here with live status
@@ -210,10 +241,11 @@ export default function CitizenDashboard() {
                   Make your first report
                 </Link>
               </div>
-            ): (
+            ) : (
               <ul className="space-y-2.5">
                 {myReports.slice(0, 10).map((r: Incident) => {
                   const chip = STATUS_CHIPS[r.status] ?? STATUS_CHIPS.REPORTED;
+                  const typeIcon = INCIDENT_ICONS[r.type] ?? "⚠️";
                   return (
                     <li
                       key={r.id}
@@ -222,15 +254,15 @@ export default function CitizenDashboard() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="truncate text-sm font-semibold">
-                            <span className="mr-1" aria-hidden>
-                              
+                            <span className="mr-1.5" aria-hidden>
+                              {typeIcon}
                             </span>
                             {r.location_text ?? r.type.replace(/_/g, " ")}
                           </div>
                           <div className="mt-0.5 text-xs text-muted">
                             <span className="font-mono">{r.incident_number}</span>{" "}
                             · {timeAgo(r.reported_at)} · {r.people_affected}{" "}
-                            {r.people_affected === 1 ? "person": "people"}
+                            {r.people_affected === 1 ? "person" : "people"}
                           </div>
                         </div>
                         <span

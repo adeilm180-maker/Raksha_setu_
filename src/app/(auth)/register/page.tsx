@@ -12,28 +12,28 @@ import { Logo } from "@/components/ui/Logo";
 const ROLES = [
   {
     value: "CITIZEN",
-    icon: "",
+    icon: "👤",
     label: "Citizen",
     desc: "Report emergencies, track help, find shelters",
     official: false,
   },
   {
     value: "OPERATOR",
-    icon: "",
+    icon: "🎛️",
     label: "Control Room Operator",
     desc: "Triage incidents and dispatch rescue teams",
     official: true,
   },
   {
     value: "FIELD_TEAM",
-    icon: "",
+    icon: "🚤",
     label: "Field Rescue Team",
     desc: "Receive missions and update status on-scene",
     official: true,
   },
   {
     value: "SHELTER_MANAGER",
-    icon: "",
+    icon: "⛺",
     label: "Shelter Manager",
     desc: "Manage occupancy and relief supplies",
     official: true,
@@ -193,6 +193,16 @@ export default function RegisterPage() {
               ))}
             </div>
           </fieldset>
+
+          {ROLES.find((r) => r.value === role)?.official && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-800">
+              <span className="font-bold">Evaluating or testing official consoles?</span> Official government roles are pre-configured with 1-click access on the{" "}
+              <Link href="/login" className="font-semibold underline">
+                Sign In page
+              </Link>
+              . Citizens can register directly below.
+            </div>
+          )}
 
           <div className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-sm sm:p-6">
             <div className="grid gap-4 sm:grid-cols-2">

@@ -90,15 +90,17 @@ function bearing(lat1: number, lng1: number, lat2: number, lng2: number) {
 export function AreaStatus({
   incidents,
   shelters,
+  alerts,
 }: {
   incidents?: Incident[];
   shelters?: Shelter[];
+  alerts?: Alert[];
 }) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [placeName, setPlaceName] = useState<string | null>(null);
   const [weather, setWeather] = useState<Weather | null>(null);
   const [locError, setLocError] = useState<string | null>(null);
-  const [alertsNearby, setAlertsNearby] = useState<Alert[]>([]);
+  const [alertsNearby, setAlertsNearby] = useState<Alert[]>(alerts ?? []);
 
   // Location (silent best-effort; falls back to district centre)
   useEffect(() => {
@@ -169,19 +171,22 @@ export function AreaStatus({
       } catch {
         /* weather is best-effort */
       }
-      try {
-        const { data } = await createClient()
-          .from("alerts")
-          .select("*")
-          .eq("is_active", true)
-          .order("effective_from", { ascending: false })
-          .limit(10);
-        setAlertsNearby(data ?? []);
-      } catch {
-        /* alerts need auth - skip silently for guests */
+
+      if (alerts && alerts.length > 0) {
+        setAlertsNearby(alerts);
+      } else {
+        try {
+          const res = await fetch("/api/alerts");
+          if (res.ok) {
+            const j = await res.json();
+            if (j.alerts) setAlertsNearby(j.alerts);
+          }
+        } catch {
+          /* alerts best-effort */
+        }
       }
     })();
-  }, [coords]);
+  }, [coords, alerts]);
 
   const risk = assessRisk(weather);
 

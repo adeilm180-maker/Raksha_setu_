@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { createClient as createRawClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { jsonError, requireAuthority } from "@/lib/auth";
 import {
   getSimulationStatus,
@@ -8,31 +8,6 @@ import {
   stopSimulation,
   resetDemoData,
 } from "@/lib/simulation";
-
-// Build a request-scoped-independent Supabase client for the simulation
-// engine's timers. The cookie-bound server client dies with the HTTP
-// request, but timers fire seconds/minutes later - so we capture the
-// operator's JWT now and attach it to a standalone client.
-async function createTimerSafeClient() {
-  const supabase = await createServerClient();
-  const { data } = await supabase.auth.getSession();
-  const jwt = data.session?.access_token;
-  const userId = data.session?.user?.id;
-
-  return {
-    db: createRawClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: { persistSession: false, autoRefreshToken: false },
-        global: jwt
-          ? { headers: { Authorization: `Bearer ${jwt}` } }
-          : undefined,
-      }
-    ),
-    userId,
-  };
-}
 
 // POST /api/simulation  { action: "start" | "stop" | "reset", scenarioId? }
 export async function POST(request: NextRequest) {
@@ -47,8 +22,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.action === "start") {
-    const { db, userId } = await createTimerSafeClient();
-    const result = startSimulation(body.scenarioId ?? "flood-rourkela", db, userId);
+    const adminDb = createAdminClient();
+    const result = startSimulation(body.scenarioId ?? "flood-rourkela", adminDb, auth.userId);
     if (!result.ok) return jsonError(result.error ?? "Could not start", 400);
     return NextResponse.json({ ...getSimulationStatus(), ...result });
   }
@@ -60,8 +35,8 @@ export async function POST(request: NextRequest) {
 
   if (body.action === "reset") {
     stopSimulation();
-    const supabase = await createServerClient();
-    await resetDemoData(supabase);
+    const adminDb = createAdminClient();
+    await resetDemoData(adminDb);
     return NextResponse.json({ reset: true });
   }
 

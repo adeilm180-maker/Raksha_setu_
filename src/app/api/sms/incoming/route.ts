@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { jsonError } from "@/lib/auth";
 import { parseSms } from "@/lib/sms";
 import { DEFAULT_REPORT_LOCATION } from "@/config/city";
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const parsed = parseSms(text);
   if (!parsed.ok) return jsonError(parsed.error ?? "Could not parse message", 422);
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Resolve reporter by phone number when known
   let reporterId: string | null = null;

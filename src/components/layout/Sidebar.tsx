@@ -30,6 +30,14 @@ const NAV_GROUPS: {
     title: "Tools",
     items: [{ href: "/dashboard/simulation", label: "Simulation", glyph: "Si" }],
   },
+  {
+    title: "Role Consoles",
+    items: [
+      { href: "/team", label: "Field Team View", glyph: "F" },
+      { href: "/shelter-manage", label: "Shelter Console", glyph: "Sh" },
+      { href: "/citizen", label: "Citizen Portal", glyph: "C" },
+    ],
+  },
 ];
 
 export function Sidebar({

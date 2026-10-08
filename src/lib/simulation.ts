@@ -216,22 +216,94 @@ async function executeEvent(
 
 // ---- One-click demo reset -------------------------------------
 export async function resetDemoData(db: Db) {
+  // Delete assignments and logs
   await db
     .from("assignments")
     .delete()
     .neq("id", "00000000-0000-0000-0000-000000000000");
+
+  // Delete all current incidents
   await db
     .from("incidents")
     .delete()
     .neq("id", "00000000-0000-0000-0000-000000000000");
 
+  // Reset all rescue teams
   await db
     .from("resource_teams")
-    .update({ status: "AVAILABLE" })
-    .eq("status", "UNAVAILABLE");
+    .update({ status: "AVAILABLE", current_assignment_id: null })
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+  await db
+    .from("resource_teams")
+    .update({ status: "UNAVAILABLE" })
+    .eq("team_code", "RT-006");
 
   // Restore seed-like occupancies
   await db.from("shelters").update({ current_occupancy: 45 }).eq("name", "Govt High School - Sector 2");
   await db.from("shelters").update({ current_occupancy: 130 }).eq("name", "Community Hall - Chhend Colony");
   await db.from("shelters").update({ current_occupancy: 90 }).eq("name", "Saraswati Vidya Mandir - Koel Nagar");
+
+  // Re-insert initial seed incidents
+  await db.from("incidents").insert([
+    {
+      incident_number: "INC-1001",
+      severity: "CRITICAL",
+      type: "FLOOD",
+      status: "REPORTED",
+      description: "River water entered riverside homes near Vedvyas ghat, elderly couple and child trapped on upper floor",
+      latitude: 22.2830,
+      longitude: 84.8290,
+      location_text: "Vedvyas",
+      people_affected: 18,
+      required_capabilities: ["BOAT", "MEDICAL"],
+      confidence_score: 0.85,
+      verification_status: "CONFIRMED",
+      source: "APP",
+    },
+    {
+      incident_number: "INC-1002",
+      severity: "HIGH",
+      type: "FLOOD",
+      status: "REPORTED",
+      description: "Koel Nagar lane fully waterlogged, six families requesting evacuation from ground floors",
+      latitude: 22.2400,
+      longitude: 84.8410,
+      location_text: "Koel Nagar",
+      people_affected: 12,
+      required_capabilities: ["BOAT"],
+      confidence_score: 0.65,
+      verification_status: "CORROBORATED",
+      source: "APP",
+    },
+    {
+      incident_number: "INC-1003",
+      severity: "MEDIUM",
+      type: "STRUCTURAL_COLLAPSE",
+      status: "REPORTED",
+      description: "Boundary wall collapsed in Civil Township due to waterlogging, road partially blocked",
+      latitude: 22.2505,
+      longitude: 84.8640,
+      location_text: "Civil Township",
+      people_affected: 5,
+      required_capabilities: ["HEAVY_EQUIPMENT"],
+      confidence_score: 0.55,
+      verification_status: "UNVERIFIED",
+      source: "APP",
+    },
+    {
+      incident_number: "INC-1004",
+      severity: "LOW",
+      type: "FLOOD",
+      status: "REPORTED",
+      description: "Minor waterlogging near Sector 6 market, traffic moving slowly",
+      latitude: 22.2620,
+      longitude: 84.8520,
+      location_text: "Sector 6",
+      people_affected: 2,
+      required_capabilities: [],
+      confidence_score: 0.50,
+      verification_status: "UNVERIFIED",
+      source: "APP",
+    },
+  ]);
 }

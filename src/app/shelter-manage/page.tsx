@@ -1,21 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLiveData } from "@/hooks/useLiveData";
 import { SignOutButton } from "@/components/layout/SignOutButton";
-import type { Shelter, ShelterStock, StockItemType } from "@/types/database";
+import type { Shelter, ShelterStock, StockItemType, UserRole } from "@/types/database";
 import { Logo } from "@/components/ui/Logo";
 
 const STOCK_ITEMS: { value: StockItemType; label: string; icon: string }[] = [
-  { value: "FOOD", label: "Food", icon: "" },
-  { value: "WATER", label: "Water", icon: "" },
-  { value: "MEDICAL", label: "Medical", icon: "" },
-  { value: "BLANKETS", label: "Blankets", icon: "" },
-  { value: "CLOTHING", label: "Clothing", icon: "" },
-  { value: "SANITATION", label: "Sanitation", icon: "" },
-  { value: "TENTS", label: "Tents", icon: "" },
-  { value: "OTHER", label: "Other", icon: "" },
+  { value: "FOOD", label: "Food", icon: "🍲" },
+  { value: "WATER", label: "Water", icon: "💧" },
+  { value: "MEDICAL", label: "Medical", icon: "🩹" },
+  { value: "BLANKETS", label: "Blankets", icon: "🛏️" },
+  { value: "CLOTHING", label: "Clothing", icon: "👕" },
+  { value: "SANITATION", label: "Sanitation", icon: "🧼" },
+  { value: "TENTS", label: "Tents", icon: "⛺" },
+  { value: "OTHER", label: "Other", icon: "📦" },
 ];
 
 const STATUS_STYLES: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function ShelterManagePage() {
   const { shelters, connected, initialLoading, refresh } = useLiveData();
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
+  const [role, setRole] = useState<UserRole | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +50,12 @@ export default function ShelterManagePage() {
       if (!user) return;
       setUserId(user.id);
       setUserName(user.user_metadata?.name ?? user.email?.split("@")[0] ?? "");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      setRole(profile?.role ?? null);
     })();
   }, []);
 
@@ -118,10 +126,20 @@ export default function ShelterManagePage() {
               </div>
             </div>
           </div>
-          <SignOutButton
-            label="Sign out"
-            className="shrink-0 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-gray-50 hover:text-foreground disabled:opacity-60 sm:text-sm"
-          />
+          <div className="flex items-center gap-2">
+            {role && ["OPERATOR", "ADMIN"].includes(role) && (
+              <Link
+                href="/dashboard"
+                className="shrink-0 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+              >
+                ← Control Room
+              </Link>
+            )}
+            <SignOutButton
+              label="Sign out"
+              className="shrink-0 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-gray-50 hover:text-foreground disabled:opacity-60 sm:text-sm"
+            />
+          </div>
         </div>
       </header>
 
@@ -198,6 +216,33 @@ export default function ShelterManagePage() {
           </section>
         )}
 
+        {/* Claim flow */}
+        {!initialLoading && myShelters.length === 0 && claimable.length > 0 && (
+          <section className="mb-7" aria-label="Claim a shelter">
+            <h2 className="mb-3 px-1 text-sm font-bold uppercase tracking-wider text-muted">
+              Claim Your Shelter Facility
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {claimable.map((s) => (
+                <button
+                  key={s.id}
+                  disabled={busyId === s.id}
+                  onClick={() => claimShelter(s.id)}
+                  className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-white p-4 text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-md active:scale-[0.99]"
+                >
+                  <span className="min-w-0">
+                    <span className="font-bold text-sm">{s.name}</span>
+                    <span className="block text-xs text-muted mt-0.5 truncate">{s.address} · Cap: {s.total_capacity}</span>
+                  </span>
+                  <span className="shrink-0 ml-3 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[var(--color-accent)]">
+                    {busyId === s.id ? "Claiming..." : "Claim →"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Shelters */}
         {initialLoading ? (
           <ul className="space-y-3">
@@ -205,15 +250,15 @@ export default function ShelterManagePage() {
               <Skeleton key={n} className="h-48 rounded-2xl" />
             ))}
           </ul>
-        ): myShelters.length === 0 ? (
+        ) : myShelters.length === 0 && claimable.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-white p-8 text-center">
-            <div className="text-3xl"></div>
+            <div className="text-3xl">⛺</div>
             <p className="mt-2 text-sm font-medium">No shelters assigned to you yet</p>
             <p className="mt-1 text-xs text-muted">
-              Ask a control-room operator to link your account to a shelter.
+              All shelter facilities are currently claimed. Ask a control-room operator to link your account.
             </p>
           </div>
-        ): (
+        ) : myShelters.length > 0 ? (
           <ul className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
             {myShelters.map((s) => (
               <li key={s.id}>
@@ -226,7 +271,7 @@ export default function ShelterManagePage() {
               </li>
             ))}
           </ul>
-        )}
+        ) : null}
       </main>
     </div>
   );

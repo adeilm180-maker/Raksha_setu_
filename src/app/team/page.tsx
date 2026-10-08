@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLiveData, isActiveAssignment } from "@/hooks/useLiveData";
 import { SignOutButton } from "@/components/layout/SignOutButton";
@@ -124,16 +125,20 @@ export default function TeamPage() {
   async function setStatus(teamId: string, status: string) {
     setBusy(true);
     setError(null);
-    const { error } = await createClient()
-.from("resource_teams")
-.update({
-        status: status as ResourceStatus,
-        last_status_update: new Date().toISOString(),
-      })
-.eq("id", teamId);
-    if (error) setError(error.message);
-    else void refresh();
-    setBusy(false);
+    try {
+      const res = await fetch(`/api/resources/${teamId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Status update failed");
+      void refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Status update failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function advanceAssignment(a: Assignment) {
@@ -195,10 +200,20 @@ export default function TeamPage() {
               </div>
             </div>
           </div>
-          <SignOutButton
-            label="Sign out"
-            className="shrink-0 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-gray-50 hover:text-foreground disabled:opacity-60 sm:text-sm"
-          />
+          <div className="flex items-center gap-2">
+            {role && ["OPERATOR", "ADMIN"].includes(role) && (
+              <Link
+                href="/dashboard"
+                className="shrink-0 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+              >
+                ← Control Room
+              </Link>
+            )}
+            <SignOutButton
+              label="Sign out"
+              className="shrink-0 rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-muted transition-colors hover:bg-gray-50 hover:text-foreground disabled:opacity-60 sm:text-sm"
+            />
+          </div>
         </div>
       </header>
 
@@ -340,7 +355,7 @@ export default function TeamPage() {
 
         {!initialLoading && myTeams.length === 0 && claimable.length === 0 && (
           <div className="mb-7 rounded-2xl border border-dashed border-[var(--color-border)] bg-white p-8 text-center">
-            <div className="text-3xl"></div>
+            <div className="text-3xl">🚤</div>
             <p className="mt-2 text-sm font-medium">No team linked yet</p>
             <p className="mt-1 text-xs text-muted">
               Ask a control-room operator to link your account to a rescue team.
@@ -361,15 +376,15 @@ export default function TeamPage() {
 
           {initialLoading ? (
             <Skeleton className="h-56 rounded-2xl" />
-          ): missions.length === 0 ? (
+          ) : missions.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-white p-8 text-center">
-              <div className="text-3xl"></div>
+              <div className="text-3xl">⏳</div>
               <p className="mt-2 text-sm font-medium">On standby</p>
               <p className="mt-1 text-xs text-muted">
                 New assignments appear here instantly when control room dispatches you.
               </p>
             </div>
-          ): (
+          ) : (
             <ul className="space-y-4">
               {missions.map((a) => {
                 const inc = incidentById.get(a.incident_id);

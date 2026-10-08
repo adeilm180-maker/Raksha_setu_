@@ -92,21 +92,25 @@ function etaScore(eta: number): number {
 }
 
 function capabilityScore(
-  required: string[],
-  available: string[]
+  required: string[] | undefined | null,
+  available: string[] | undefined | null
 ): number {
-  if (required.length === 0) return 100;
-  const matched = required.filter((c) => available.includes(c)).length;
-  return (matched / required.length) * 100;
+  const req = required ?? [];
+  const avail = available ?? [];
+  if (req.length === 0) return 100;
+  const matched = req.filter((c) => avail.includes(c)).length;
+  return (matched / req.length) * 100;
 }
 
 function availabilityScore(status: ResourceStatus): number {
-  return AVAILABILITY_POINTS[status];
+  return AVAILABILITY_POINTS[status] ?? 0;
 }
 
-function capacityScore(teamCapacity: number, peopleAffected: number): number {
-  if (peopleAffected <= 0) return 100;
-  return Math.min(100, (teamCapacity / peopleAffected) * 100);
+function capacityScore(teamCapacity: number | undefined | null, peopleAffected: number | undefined | null): number {
+  const cap = teamCapacity ?? 0;
+  const people = peopleAffected ?? 1;
+  if (people <= 0) return 100;
+  return Math.min(100, (cap / people) * 100);
 }
 
 export function calculateAllocationScore(
@@ -131,10 +135,10 @@ export function calculateAllocationScore(
   const eta = etaMinutes(distanceKm);
   const etaPts = etaScore(eta);
 
-  const capability = capabilityScore(
-    incident.required_capabilities,
-    resource.capabilities
-  );
+  const reqCaps = incident.required_capabilities ?? [];
+  const availCaps = resource.capabilities ?? [];
+
+  const capability = capabilityScore(reqCaps, availCaps);
   const availability = availabilityScore(resource.status);
   const capacity = capacityScore(resource.capacity, incident.people_affected);
 
@@ -161,12 +165,8 @@ export function calculateAllocationScore(
       teamCode: resource.team_code,
       distanceKm,
       etaMinutes: Math.ceil(eta),
-      matchedCaps: incident.required_capabilities.filter((c) =>
-        resource.capabilities.includes(c)
-      ),
-      missingCaps: incident.required_capabilities.filter(
-        (c) => !resource.capabilities.includes(c)
-      ),
+      matchedCaps: reqCaps.filter((c) => availCaps.includes(c)),
+      missingCaps: reqCaps.filter((c) => !availCaps.includes(c)),
       status: resource.status,
       capacity: resource.capacity,
       peopleAffected: incident.people_affected,

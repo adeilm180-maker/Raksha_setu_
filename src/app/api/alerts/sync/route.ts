@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { jsonError, requireAuthority } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { optionalAuth } from "@/lib/auth";
 import { fetchIMDAlerts } from "@/lib/imd";
 
-// POST /api/alerts/sync  - pull IMD warnings into the alerts table.
-// Called by the dashboard every 15 minutes (and manually for demos).
+// POST /api/alerts/sync - pull IMD warnings into the alerts table.
+// Called by the dashboard/citizen views periodically (and manually for demos).
 export async function POST() {
-  const auth = await requireAuthority();
-  if (auth instanceof NextResponse) return auth;
+  await optionalAuth();
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { alerts, live, source } = await fetchIMDAlerts();
 
   let synced = 0;
@@ -30,20 +29,17 @@ export async function POST() {
   return NextResponse.json({ synced, live, source });
 }
 
-// GET /api/alerts - active weather warnings
+// GET /api/alerts/sync - active weather warnings
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return jsonError("Unauthorized", 401);
-
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("alerts")
     .select("*")
     .eq("is_active", true)
     .order("effective_from", { ascending: false });
 
-  if (error) return jsonError(error.message, 500);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ alerts: data ?? [] });
 }

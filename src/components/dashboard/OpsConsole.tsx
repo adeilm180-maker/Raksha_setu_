@@ -189,7 +189,7 @@ export function OpsConsole() {
         {/* IMD warning banner */}
         {alerts.length > 0 && (
           <div className="absolute inset-x-3 top-3 z-[1000] flex items-center gap-2 rounded-lg border border-orange-300 bg-orange-50/95 px-3 py-2 text-xs font-medium text-orange-800 shadow-md backdrop-blur">
-             {alerts[0].title}
+            <span>⚠️</span> {alerts[0].title}
             {alerts.length > 1 && (
               <span className="text-orange-600">(+{alerts.length - 1} more)</span>
             )}
@@ -206,7 +206,9 @@ export function OpsConsole() {
         {alertsOpen && alerts.length > 0 && (
           <div className="absolute left-3 top-12 z-[1050] w-80 space-y-2 rounded-xl border border-[var(--color-border)] bg-white/97 p-3 shadow-lg backdrop-blur">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">Weather Warnings</span>
+              <span className="text-sm font-bold flex items-center gap-1.5">
+                <span>⚠️</span> Weather Warnings
+              </span>
               <button
                 onClick={() => setAlertsOpen(false)}
                 className="text-muted hover:text-foreground"
@@ -230,30 +232,30 @@ export function OpsConsole() {
         )}
 
         {/* Map controls */}
-        <div className="absolute right-3 top-12 z-[1000] flex flex-col gap-1 rounded-lg border border-[var(--color-border)] bg-white/95 p-2 text-xs shadow-md backdrop-blur">
+        <div className="absolute right-3 top-12 z-[1000] flex flex-col gap-1.5 rounded-lg border border-[var(--color-border)] bg-white/95 p-2.5 text-xs shadow-md backdrop-blur">
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
               type="checkbox"
               checked={layers.incidents}
-              onChange={(e) => setLayers((l) => ({...l, incidents: e.target.checked }))}
+              onChange={(e) => setLayers((l) => ({ ...l, incidents: e.target.checked }))}
             />
-             Incidents
+            <span>🚨 Incidents</span>
           </label>
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
               type="checkbox"
               checked={layers.resources}
-              onChange={(e) => setLayers((l) => ({...l, resources: e.target.checked }))}
+              onChange={(e) => setLayers((l) => ({ ...l, resources: e.target.checked }))}
             />
-             Teams
+            <span>🚤 Teams</span>
           </label>
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
               type="checkbox"
               checked={layers.shelters}
-              onChange={(e) => setLayers((l) => ({...l, shelters: e.target.checked }))}
+              onChange={(e) => setLayers((l) => ({ ...l, shelters: e.target.checked }))}
             />
-             Shelters
+            <span>⛺ Shelters</span>
           </label>
           <hr className="my-0.5 border-[var(--color-border)]" />
           <label className="flex cursor-pointer items-center gap-1.5">
@@ -262,7 +264,7 @@ export function OpsConsole() {
               checked={showHeatmap}
               onChange={(e) => setShowHeatmap(e.target.checked)}
             />
-             Heatmap
+            <span>🔥 Heatmap</span>
           </label>
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
@@ -270,7 +272,7 @@ export function OpsConsole() {
               checked={layers.radar}
               onChange={(e) => setLayers((l) => ({ ...l, radar: e.target.checked }))}
             />
-             Rain radar
+            <span>🌧️ Rain radar</span>
           </label>
         </div>
 

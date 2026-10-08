@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSafeUser, getUserRole } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AreaStatus } from "@/components/weather/AreaStatus";
 import { Logo } from "@/components/ui/Logo";
 
@@ -14,28 +15,32 @@ const ROLE_ROUTES: Record<string, string> = {
 const PERSONAS = [
   {
     href: "/report",
-        title: "I'm a Resident",
+    icon: "📱",
+    title: "I'm a Resident",
     desc: "Report an emergency in under a minute — no account needed. Track help live.",
     cta: "Report now",
     accent: true,
   },
   {
     href: "/dashboard",
-        title: "Control Room",
+    icon: "🎛️",
+    title: "Control Room",
     desc: "Live district map, AI-triaged incidents and one-click optimal team dispatch.",
     cta: "Open console",
     accent: false,
   },
   {
     href: "/team",
-        title: "Rescue Team",
+    icon: "🚤",
+    title: "Rescue Team",
     desc: "Get dispatched instantly, navigate on-scene and update your mission status.",
     cta: "Mission console",
     accent: false,
   },
   {
     href: "/shelter-manage",
-        title: "Shelter Manager",
+    icon: "⛺",
+    title: "Shelter Manager",
     desc: "Keep occupancy and supplies current so routing decisions use real data.",
     cta: "Shelter console",
     accent: false,
@@ -44,19 +49,23 @@ const PERSONAS = [
 
 const STEPS = [
   {
-        title: "Report",
+    icon: "🚨",
+    title: "Report",
     text: "Anyone reports via app or SMS with GPS + photo — no signup required.",
   },
   {
-        title: "AI Triage",
+    icon: "🤖",
+    title: "AI Triage",
     text: "Gemini classifies the report; duplicates merge and trust scores rise as neighbors corroborate.",
   },
   {
-        title: "Smart Dispatch",
+    icon: "⚡",
+    title: "Smart Dispatch",
     text: "The allocation engine scores every team on ETA, capability, capacity and availability.",
   },
   {
-        title: "Live Tracking",
+    icon: "📡",
+    title: "Live Tracking",
     text: "Everyone watches the same realtime picture until the incident is resolved.",
   },
 ];
@@ -69,8 +78,25 @@ export default async function Home({
   const { error } = await searchParams;
   const user = await getSafeUser();
   const signedIn = !!user;
-  const role = signedIn ? await getUserRole(): null;
+  const role = signedIn ? await getUserRole() : null;
   const consoleHref = (role && ROLE_ROUTES[role]) || "/login";
+
+  let alerts: any[] = [];
+  let shelters: any[] = [];
+  let incidents: any[] = [];
+  try {
+    const admin = createAdminClient();
+    const [alRes, shRes, incRes] = await Promise.all([
+      admin.from("alerts").select("*").eq("is_active", true).order("effective_from", { ascending: false }).limit(10),
+      admin.from("shelters").select("*").order("name"),
+      admin.from("incidents").select("*").not("status", "in", '("RESOLVED","CANCELLED")').order("reported_at", { ascending: false }).limit(20),
+    ]);
+    alerts = alRes.data ?? [];
+    shelters = shRes.data ?? [];
+    incidents = incRes.data ?? [];
+  } catch {
+    /* fallback to client best-effort */
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -88,7 +114,7 @@ export default async function Home({
             >
               Open my console →
             </Link>
-          ): (
+          ) : (
             <div className="flex items-center gap-2">
               <Link
                 href="/login"
@@ -145,7 +171,7 @@ export default async function Home({
 
         {/* Live area status (weather + risk) */}
         <section className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
-          <AreaStatus />
+          <AreaStatus alerts={alerts} shelters={shelters} incidents={incidents} />
         </section>
 
         {/* Persona tiles */}
@@ -157,18 +183,25 @@ export default async function Home({
             <Link
               key={p.title}
               href={p.href}
-              className={`group flex flex-col rounded-2xl border p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] ${p.accent
-                ? "border-red-200 bg-red-50/60"
-: "border-[var(--color-border)] bg-white"
-                }`}
+              className={`group flex flex-col rounded-2xl border p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg active:scale-[0.99] ${
+                p.accent
+                  ? "border-red-200 bg-red-50/60"
+                  : "border-[var(--color-border)] bg-white"
+              }`}
             >
-                            <h2 className="mt-3 font-bold">{p.title}</h2>
+              <div className="flex items-center justify-between">
+                <span className="text-3xl">{p.icon}</span>
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-mono font-medium text-muted">
+                  View
+                </span>
+              </div>
+              <h2 className="mt-3 font-bold">{p.title}</h2>
               <p className="mt-1 flex-1 text-xs leading-relaxed text-muted">
                 {p.desc}
               </p>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-accent)]">
                 {p.cta}
-                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+                <span className="transition-transform group-hover:translate-x-1">→</span>
               </span>
             </Link>
           ))}
@@ -182,11 +215,12 @@ export default async function Home({
             </h2>
             <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {STEPS.map((s, i) => (
-                <li key={s.title} className="relative rounded-2xl bg-white p-5 shadow-sm">
-                  <span className="absolute -top-3 left-5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)] text-xs font-bold text-white">
+                <li key={s.title} className="relative rounded-2xl bg-white p-5 shadow-sm border border-[var(--color-border)]">
+                  <span className="absolute -top-3 left-5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)] text-xs font-bold text-white shadow-sm">
                     {i + 1}
                   </span>
-                                    <h3 className="mt-2 font-bold">{s.title}</h3>
+                  <div className="mt-2 text-2xl">{s.icon}</div>
+                  <h3 className="mt-2 font-bold">{s.title}</h3>
                   <p className="mt-1 text-xs leading-relaxed text-muted">
                     {s.text}
                   </p>

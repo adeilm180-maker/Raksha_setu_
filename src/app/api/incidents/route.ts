@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     },
   };
 
-  const{ data: incident, error } = await supabase
+  let { data: incident, error } = await supabase
     .from("incidents")
     .insert(payload)
     .select("*")
@@ -183,6 +183,18 @@ export async function POST(request: NextRequest) {
   // Safety net: a stale-but-signed browser token can make Postgres treat
   // the request as `authenticated` even when we have no usable session.
   // Never block the report - retry it as truly anonymous instead.
+  if (error && payload.reporter_id) {
+    console.warn("[incidents] insert with reporter_id failed, retrying anonymously:", error.message);
+    const retry = await supabase
+      .from("incidents")
+      .insert({ ...payload, reporter_id: null })
+      .select("*")
+      .single();
+    if (!retry.error && retry.data) {
+      incident = retry.data;
+      error = null;
+    }
+  }
   
   if (error) {
     console.error("[incidents] insert failed:", error.message);
